@@ -8,3 +8,6 @@ compose.yml
 __pycache__
 .cursor
 .vscode
+venv
+*.log
+*.out

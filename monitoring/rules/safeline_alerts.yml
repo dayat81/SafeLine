@@ -1,0 +1,92 @@
+groups:
+  - name: safeline_performance
+    rules:
+      # High response time alert
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(safeline_request_duration_seconds_bucket[5m])) > 0.1
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "SafeLine WAF high response time"
+          description: "95th percentile response time is {{ $value }}s"
+
+      # High request rate
+      - alert: HighRequestRate  
+        expr: rate(safeline_requests_total[1m]) > 2000
+        for: 1m
+        labels:
+          severity: info
+        annotations:
+          summary: "High request rate detected"
+          description: "Request rate is {{ $value }} RPS"
+
+      # High block rate
+      - alert: HighBlockRate
+        expr: rate(safeline_requests_blocked_total[5m]) > 100
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High attack rate detected"
+          description: "Block rate is {{ $value }} requests/sec"
+
+      # Memory usage
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value }}%"
+
+      # CPU usage
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (irate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+  - name: safeline_security
+    rules:
+      # Attack pattern detection
+      - alert: SQLInjectionSpike
+        expr: increase(safeline_detections_total{attack_type="sql_injection"}[5m]) > 50
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SQL injection attack spike"
+          description: "{{ $value }} SQL injection attempts in 5 minutes"
+
+      - alert: XSSAttackSpike
+        expr: increase(safeline_detections_total{attack_type="xss"}[5m]) > 30
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "XSS attack spike"
+          description: "{{ $value }} XSS attempts in 5 minutes"
+
+      - alert: CommandInjectionDetected
+        expr: increase(safeline_detections_total{attack_type="command_injection"}[1m]) > 5
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Command injection attacks detected"
+          description: "{{ $value }} command injection attempts in 1 minute"
+
+      # Error rate
+      - alert: HighErrorRate
+        expr: rate(safeline_requests_total{status=~"5.."}[5m]) / rate(safeline_requests_total[5m]) * 100 > 5
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate"
+          description: "Error rate is {{ $value }}%"

@@ -1,0 +1,291 @@
+version: '3.8'
+
+# Advanced SafeLine deployment for high-throughput testing
+networks:
+  safeline-advanced:
+    name: safeline-advanced
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - gateway: 172.22.222.1
+          subnet: 172.22.222.0/24
+    driver_opts:
+      com.docker.network.bridge.name: safeline-advanced
+
+services:
+  # Enhanced PostgreSQL for high load
+  postgres:
+    container_name: safeline-pg-advanced
+    restart: always
+    image: postgres:15.2-alpine
+    volumes:
+      - ${SAFELINE_DIR:-./data}/resources/postgres/data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - POSTGRES_USER=safeline-ce
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?postgres password required}
+      - POSTGRES_DB=safeline-ce
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.2
+    command: [
+      "postgres",
+      "-c", "max_connections=1000",
+      "-c", "shared_buffers=2GB",
+      "-c", "effective_cache_size=6GB", 
+      "-c", "work_mem=16MB",
+      "-c", "maintenance_work_mem=512MB",
+      "-c", "checkpoint_completion_target=0.9",
+      "-c", "wal_buffers=16MB",
+      "-c", "default_statistics_target=100",
+      "-c", "random_page_cost=1.1",
+      "-c", "effective_io_concurrency=200"
+    ]
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4'
+        reservations:
+          memory: 4G
+          cpus: '2'
+    healthcheck:
+      test: pg_isready -U safeline-ce -d safeline-ce
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Management service with performance optimization
+  mgt:
+    container_name: safeline-mgt-advanced
+    restart: always
+    image: chaitin/safeline-mgt:latest
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${SAFELINE_DIR:-./data}/resources/mgt:/app/data
+      - ${SAFELINE_DIR:-./data}/logs/nginx:/app/log/nginx:z
+      - ${SAFELINE_DIR:-./data}/resources/sock:/app/sock
+      - /var/run:/app/run
+      - ./advanced_rules:/app/custom_rules
+    ports:
+      - ${MGT_PORT:-9443}:1443
+    environment:
+      - MGT_PG=postgres://safeline-ce:${POSTGRES_PASSWORD}@safeline-pg-advanced/safeline-ce?sslmode=disable
+      - WAF_PERFORMANCE_MODE=high_throughput
+      - MAX_WORKER_CONNECTIONS=4096
+      - DETECTION_TIMEOUT=500
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.3
+    deploy:
+      resources:
+        limits:
+          memory: 8G
+          cpus: '4'
+        reservations:
+          memory: 4G
+          cpus: '2'
+    healthcheck:
+      test: curl -k -f https://localhost:1443/api/open/health
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "5"
+
+  # High-performance Tengine WAF engine
+  tengine:
+    container_name: safeline-tengine-advanced
+    restart: always
+    image: chaitin/safeline-tengine:latest
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${SAFELINE_DIR:-./data}/resources/sock:/app/sock
+      - ${SAFELINE_DIR:-./data}/logs/nginx:/app/log/nginx
+      - ./tengine_config:/etc/nginx/conf.d/custom
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - TENGINE_WORKER_PROCESSES=auto
+      - TENGINE_WORKER_CONNECTIONS=4096
+      - TENGINE_KEEPALIVE_TIMEOUT=65
+      - TENGINE_CLIENT_MAX_BODY_SIZE=100m
+      - DETECTION_MODE=blocking
+      - RATE_LIMIT_ENABLED=true
+      - HIGH_PERFORMANCE_MODE=true
+    depends_on:
+      mgt:
+        condition: service_healthy
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.4
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4'
+        reservations:
+          memory: 2G
+          cpus: '2'
+    healthcheck:
+      test: curl -f http://localhost/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    sysctls:
+      - net.core.somaxconn=65535
+      - net.ipv4.tcp_tw_reuse=1
+      - net.ipv4.ip_local_port_range=1024 65535
+
+  # Enhanced detection engine
+  detector:
+    container_name: safeline-detector-advanced
+    restart: always
+    image: chaitin/safeline-detector:latest
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ${SAFELINE_DIR:-./data}/resources/sock:/app/sock
+      - ${SAFELINE_DIR:-./data}/logs:/app/log
+      - ./detection_rules:/app/custom_rules
+    environment:
+      - DETECTOR_THREADS=8
+      - BATCH_SIZE=1000
+      - DETECTION_TIMEOUT=500
+      - RULE_ENGINE_MODE=optimized
+      - PARALLEL_PROCESSING=true
+      - CACHE_SIZE=1000000
+    depends_on:
+      mgt:
+        condition: service_healthy
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.5
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4'
+        reservations:
+          memory: 2G
+          cpus: '2'
+    healthcheck:
+      test: curl -f http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Target applications for testing
+  target-app-1:
+    container_name: target-web-1
+    image: httpd:alpine
+    volumes:
+      - ./target_apps/web1:/usr/local/apache2/htdocs
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.10
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+  target-app-2:
+    container_name: target-api-1
+    image: nginx:alpine
+    volumes:
+      - ./target_apps/api1:/usr/share/nginx/html
+      - ./target_apps/api1/nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.11
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '2'
+
+  # Load testing container with advanced tools
+  load-tester:
+    container_name: advanced-load-tester
+    image: python:3.11-slim
+    volumes:
+      - ./testing_framework:/app
+      - ./test_results:/results
+      - /etc/localtime:/etc/localtime:ro
+    working_dir: /app
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.20
+    command: >
+      bash -c "
+      apt-get update &&
+      apt-get install -y curl apache2-utils wrk &&
+      pip install aiohttp asyncio pandas numpy matplotlib seaborn requests beautifulsoup4 &&
+      tail -f /dev/null
+      "
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+          cpus: '4'
+
+  # Monitoring stack
+  prometheus:
+    container_name: safeline-prometheus
+    image: prom/prometheus:latest
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./monitoring/rules:/etc/prometheus/rules
+    ports:
+      - "9090:9090"
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.30
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=24h'
+      - '--web.enable-lifecycle'
+
+  grafana:
+    container_name: safeline-grafana
+    image: grafana/grafana:latest
+    volumes:
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+    ports:
+      - "3000:3000"
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.31
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+
+  node-exporter:
+    container_name: safeline-node-exporter
+    image: prom/node-exporter:latest
+    ports:
+      - "9100:9100"
+    networks:
+      safeline-advanced:
+        ipv4_address: 172.22.222.32
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro

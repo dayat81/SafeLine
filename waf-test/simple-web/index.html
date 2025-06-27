@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vulnerable Test Application</title>
+</head>
+<body>
+    <h1>Vulnerable Test Application</h1>
+    <p>This is a simple test target for WAF testing.</p>
+    
+    <h2>Test Endpoints:</h2>
+    <ul>
+        <li><a href="/api.php">API Endpoint</a></li>
+        <li><a href="/search.php">Search (SQL Injection Test)</a></li>
+        <li><a href="/comment.php">Comment Form (XSS Test)</a></li>
+        <li><a href="/ping.php">Ping Utility (Command Injection Test)</a></li>
+    </ul>
+    
+    <h2>Sample Attack Patterns:</h2>
+    <ul>
+        <li>SQL Injection: <code>/search.php?q=1' OR '1'='1</code></li>
+        <li>XSS: <code>/comment.php?comment=&lt;script&gt;alert('XSS')&lt;/script&gt;</code></li>
+        <li>Command Injection: <code>/ping.php?host=127.0.0.1; cat /etc/passwd</code></li>
+        <li>Path Traversal: <code>/file.php?path=../../../../etc/passwd</code></li>
+    </ul>
+</body>
+</html>

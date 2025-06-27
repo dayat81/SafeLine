@@ -1,0 +1,4 @@
+time_total: %{time_total}s
+time_connect: %{time_connect}s
+time_starttransfer: %{time_starttransfer}s
+http_code: %{http_code}
