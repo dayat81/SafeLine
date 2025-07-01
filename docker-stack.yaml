@@ -1,0 +1,299 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15.2-alpine
+    environment:
+      POSTGRES_USER: safeline
+      POSTGRES_PASSWORD: SafeLine123
+      POSTGRES_DB: safeline
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - safeline_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safeline -d safeline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redis_data:/data
+    networks:
+      - safeline_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fvm:
+    image: chaitin/safeline-fvm:latest
+    volumes:
+      - fvm_data:/app/data
+    networks:
+      - safeline_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0.3
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/skynetinfo"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  mgt:
+    image: chaitin/safeline-mgt:latest
+    ports:
+      - target: 1443
+        published: 9443
+        protocol: tcp
+        mode: host
+    environment:
+      - MGT_PG=postgres://safeline:SafeLine123@postgres:5432/safeline?sslmode=disable
+      - POSTGRES_PASSWORD=SafeLine123
+    volumes:
+      - mgt_data:/app/data
+      - mgt_logs:/app/log
+      - socket_data:/app/sock
+    networks:
+      - safeline_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0.3
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      - postgres
+      - redis
+      - fvm
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:1443/api/open/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  tengine:
+    image: chaitin/safeline-tengine:latest
+    ports:
+      - target: 80
+        published: 80
+        protocol: tcp
+        mode: host
+      - target: 443
+        published: 443
+        protocol: tcp
+        mode: host
+    volumes:
+      - socket_data:/app/sock
+      - tengine_logs:/app/log/nginx
+    networks:
+      - safeline_network
+    environment:
+      - NGINX_WORKER_PROCESSES=auto
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 10s
+        max_attempts: 5
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        monitor: 60s
+        max_failure_ratio: 0.3
+      placement:
+        constraints:
+          - node.role == manager
+      resources:
+        limits:
+          cpus: '4'
+          memory: 4G
+        reservations:
+          cpus: '1'
+          memory: 1G
+    depends_on:
+      - mgt
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  luigi:
+    image: chaitin/safeline-luigi:latest
+    volumes:
+      - luigi_data:/app/data
+      - mgt_logs:/app/log:ro
+    networks:
+      - safeline_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    depends_on:
+      - postgres
+
+  chaos:
+    image: chaitin/safeline-chaos:latest
+    volumes:
+      - chaos_data:/app/data
+    networks:
+      - safeline_network
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '1'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  detector:
+    image: chaitin/safeline-detector:latest
+    volumes:
+      - detector_data:/app/data
+      - socket_data:/app/sock
+    networks:
+      - safeline_network
+    environment:
+      - DETECTOR_WORKERS=4
+    deploy:
+      replicas: 2  # Can scale for better detection performance
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "test", "-S", "/app/sock/detector.sock"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  fvm_data:
+    driver: local
+  mgt_data:
+    driver: local
+  mgt_logs:
+    driver: local
+  socket_data:
+    driver: local
+  tengine_logs:
+    driver: local
+  luigi_data:
+    driver: local
+  chaos_data:
+    driver: local
+  detector_data:
+    driver: local
+
+networks:
+  safeline_network:
+    driver: overlay
+    attachable: true
+    ipam:
+      config:
+        - subnet: 172.22.222.0/24

@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  dvwa:
+    container_name: backend-webapp
+    image: vulnerables/web-dvwa:latest
+    ports:
+      - "8080:80"
+    environment:
+      - DB_SERVER=dvwa-db
+      - DB_DATABASE=dvwa
+      - DB_USERNAME=dvwa
+      - DB_PASSWORD=p@ssw0rd
+    depends_on:
+      - dvwa-db
+    networks:
+      - backend-net
+      - safeline-ce
+
+  dvwa-db:
+    container_name: backend-db
+    image: mysql:5.7
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpass
+      - MYSQL_DATABASE=dvwa
+      - MYSQL_USER=dvwa
+      - MYSQL_PASSWORD=p@ssw0rd
+    volumes:
+      - dvwa-db-data:/var/lib/mysql
+    networks:
+      - backend-net
+
+  juice-shop:
+    container_name: juice-shop
+    image: bkimminich/juice-shop:latest
+    ports:
+      - "8081:3000"
+    networks:
+      - backend-net
+      - safeline-ce
+
+  nodejs-app:
+    container_name: nodejs-webapp
+    image: node:16-alpine
+    ports:
+      - "8082:3000"
+    working_dir: /app
+    volumes:
+      - ./sample-app:/app
+    command: sh -c "npm install express mysql && node app.js"
+    environment:
+      - NODE_ENV=production
+    networks:
+      - backend-net
+      - safeline-ce
+
+networks:
+  backend-net:
+    driver: bridge
+  safeline-ce:
+    external: true
+
+volumes:
+  dvwa-db-data:

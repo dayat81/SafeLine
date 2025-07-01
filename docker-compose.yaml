@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: safeline-pg
+    image: postgres:15.2-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: safeline
+      POSTGRES_PASSWORD: SafeLine123
+      POSTGRES_DB: safeline
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safeline -d safeline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  redis:
+    container_name: safeline-redis  
+    image: redis:7-alpine
+    restart: always
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  fvm:
+    container_name: safeline-fvm
+    image: chaitin/safeline-fvm:latest
+    restart: always
+    volumes:
+      - fvm_data:/app/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/skynetinfo"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+
+  mgt:
+    container_name: safeline-mgt
+    image: chaitin/safeline-mgt:latest
+    restart: always
+    ports:
+      - "9443:1443"
+    environment:
+      - MGT_PG=postgres://safeline:SafeLine123@postgres:5432/safeline?sslmode=disable
+      - POSTGRES_PASSWORD=SafeLine123
+    volumes:
+      - mgt_data:/app/data
+      - mgt_logs:/app/log
+      - socket_data:/app/sock
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      fvm:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-k", "-f", "https://localhost:1443/api/open/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  tengine:
+    container_name: safeline-tengine
+    image: chaitin/safeline-tengine:latest
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - socket_data:/app/sock
+      - tengine_logs:/app/log/nginx
+    depends_on:
+      mgt:
+        condition: service_healthy
+    environment:
+      - NGINX_WORKER_PROCESSES=auto
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+volumes:
+  postgres_data:
+  redis_data:
+  fvm_data:
+  mgt_data:
+  mgt_logs:
+  socket_data:
+  tengine_logs:

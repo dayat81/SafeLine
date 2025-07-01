@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: safeline-pg
+    image: postgres:15.2-alpine
+    environment:
+      - POSTGRES_USER=safeline
+      - POSTGRES_PASSWORD=admin123
+      - POSTGRES_DB=safeline
+    healthcheck:
+      test: pg_isready -U safeline -d safeline
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mgt:
+    container_name: safeline-mgt
+    image: chaitin/safeline-mgt:latest
+    ports:
+      - "9443:1443"
+    environment:
+      - MGT_PG=postgres://safeline:admin123@safeline-pg/safeline?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy

@@ -1,0 +1,90 @@
+version: '3.8'
+
+networks:
+  safeline:
+    driver: bridge
+
+services:
+  postgres:
+    container_name: safeline-pg
+    restart: always
+    image: postgres:15.2-alpine
+    volumes:
+      - ./data/resources/postgres/data:/var/lib/postgresql/data
+      - /etc/localtime:/etc/localtime:ro
+    environment:
+      - POSTGRES_USER=safeline-ce
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=safeline-ce
+    networks:
+      - safeline
+    healthcheck:
+      test: pg_isready -U safeline-ce -d safeline-ce
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mgt:
+    container_name: safeline-mgt
+    restart: always
+    image: chaitin/safeline-mgt:latest
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./data/resources/mgt:/app/data
+      - ./data/logs/nginx:/app/log/nginx:z
+      - ./data/resources/sock:/app/sock
+    ports:
+      - ${MGT_PORT:-9443}:1443
+    environment:
+      - MGT_PG=postgres://safeline-ce:${POSTGRES_PASSWORD}@safeline-pg/safeline-ce?sslmode=disable
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - safeline
+    healthcheck:
+      test: curl -k -f https://localhost:1443/api/open/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  tengine:
+    container_name: safeline-tengine
+    restart: always
+    image: chaitin/safeline-tengine:latest
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./data/resources/sock:/app/sock
+      - ./data/logs/nginx:/app/log/nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      mgt:
+        condition: service_healthy
+    networks:
+      - safeline
+    healthcheck:
+      test: curl -f http://localhost/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  detector:
+    container_name: safeline-detector
+    restart: always
+    image: chaitin/safeline-detector:latest
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./data/resources/sock:/app/sock
+      - ./data/logs:/app/log
+    depends_on:
+      mgt:
+        condition: service_healthy
+    networks:
+      - safeline
+    healthcheck:
+      test: curl -f http://localhost:8080/health || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5

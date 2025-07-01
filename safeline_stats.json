@@ -1,0 +1,72 @@
+{
+  "timestamp": "2025-06-29T11:52:50.066870",
+  "containers": {
+    "safeline-tengine": {
+      "cpu_percent": 16.09,
+      "memory_used": 736834355,
+      "memory_limit": 32910186905,
+      "memory_percent": 2.24,
+      "memory_used_str": "702.7MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-luigi": {
+      "cpu_percent": 4.98,
+      "memory_used": 167143014,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.51,
+      "memory_used_str": "159.4MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-mgt": {
+      "cpu_percent": 13.55,
+      "memory_used": 110415052,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.34,
+      "memory_used_str": "105.3MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-pg": {
+      "cpu_percent": 1.73,
+      "memory_used": 335754035,
+      "memory_limit": 32910186905,
+      "memory_percent": 1.02,
+      "memory_used_str": "320.2MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-fvm": {
+      "cpu_percent": 0.0,
+      "memory_used": 161690419,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.49,
+      "memory_used_str": "154.2MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-chaos": {
+      "cpu_percent": 0.05,
+      "memory_used": 61488496,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.19,
+      "memory_used_str": "58.64MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-detector": {
+      "cpu_percent": 9.62,
+      "memory_used": 173749043,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.53,
+      "memory_used_str": "165.7MiB",
+      "memory_limit_str": "30.65GiB"
+    }
+  },
+  "disk_usage": {
+    "system": {
+      "filesystem": "/dev/sda1",
+      "size": "313G",
+      "used": "45G",
+      "available": "253G",
+      "use_percent": "15",
+      "mount": "/"
+    },
+    "docker_info": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          28        17        7.496GB   2.122GB (28%)\nContainers      17        10        461.3MB   68.14MB (14%)\nLocal Volumes   15        1         119.9MB   119.9MB (100%)\nBuild Cache     0         0         0B        0B\n"
+  }
+}

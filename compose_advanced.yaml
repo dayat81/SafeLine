@@ -3,15 +3,7 @@ version: '3.8'
 # Advanced SafeLine deployment for high-throughput testing
 networks:
   safeline-advanced:
-    name: safeline-advanced
     driver: bridge
-    ipam:
-      driver: default
-      config:
-        - gateway: 172.22.222.1
-          subnet: 172.22.222.0/24
-    driver_opts:
-      com.docker.network.bridge.name: safeline-advanced
 
 services:
   # Enhanced PostgreSQL for high load
@@ -27,8 +19,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?postgres password required}
       - POSTGRES_DB=safeline-ce
     networks:
-      safeline-advanced:
-        ipv4_address: 172.22.222.2
+      - safeline-advanced
     command: [
       "postgres",
       "-c", "max_connections=1000",
@@ -81,7 +72,6 @@ services:
         condition: service_healthy
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.3
     deploy:
       resources:
         limits:
@@ -127,7 +117,6 @@ services:
         condition: service_healthy
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.4
     deploy:
       resources:
         limits:
@@ -168,7 +157,6 @@ services:
         condition: service_healthy
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.5
     deploy:
       resources:
         limits:
@@ -191,7 +179,6 @@ services:
       - ./target_apps/web1:/usr/local/apache2/htdocs
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.10
     deploy:
       resources:
         limits:
@@ -206,7 +193,6 @@ services:
       - ./target_apps/api1/nginx.conf:/etc/nginx/nginx.conf
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.11
     deploy:
       resources:
         limits:
@@ -223,8 +209,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
     working_dir: /app
     networks:
-      safeline-advanced:
-        ipv4_address: 172.22.222.20
+      - safeline-advanced
     command: >
       bash -c "
       apt-get update &&
@@ -249,7 +234,6 @@ services:
       - "9090:9090"
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.30
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.path=/prometheus'
@@ -268,7 +252,6 @@ services:
       - "3000:3000"
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.31
     environment:
       - GF_SECURITY_ADMIN_PASSWORD=admin123
       - GF_INSTALL_PLUGINS=grafana-piechart-panel
@@ -280,7 +263,6 @@ services:
       - "9100:9100"
     networks:
       safeline-advanced:
-        ipv4_address: 172.22.222.32
     command:
       - '--path.procfs=/host/proc'
       - '--path.sysfs=/host/sys'

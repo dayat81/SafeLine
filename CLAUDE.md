@@ -3,6 +3,7 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
+## export GEMINI_API_KEY="AIzaSyDc5iF5xLH0iujbB3jo0h94tWKiFm6IGYo"
 
 SafeLine is a self-hosted Web Application Firewall (WAF) that protects web applications from various attacks. It consists of multiple services orchestrated via Docker Compose:
 - Management API (Go/Gin)

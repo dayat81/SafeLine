@@ -1,0 +1,79 @@
+{
+  "timestamp": "2025-06-29T11:56:16.787332",
+  "containers": {
+    "safeline-tengine": {
+      "cpu_percent": 16.99,
+      "cpu_limit": null,
+      "memory_used": 737044070,
+      "memory_limit": 32910186905,
+      "memory_percent": 2.24,
+      "memory_used_str": "702.9MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-luigi": {
+      "cpu_percent": 7.79,
+      "cpu_limit": null,
+      "memory_used": 172595609,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.52,
+      "memory_used_str": "164.6MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-mgt": {
+      "cpu_percent": 13.6,
+      "cpu_limit": null,
+      "memory_used": 108947046,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.33,
+      "memory_used_str": "103.9MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-pg": {
+      "cpu_percent": 8.27,
+      "cpu_limit": null,
+      "memory_used": 419640115,
+      "memory_limit": 32910186905,
+      "memory_percent": 1.28,
+      "memory_used_str": "400.2MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-fvm": {
+      "cpu_percent": 0.0,
+      "cpu_limit": null,
+      "memory_used": 161480704,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.49,
+      "memory_used_str": "154MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-chaos": {
+      "cpu_percent": 0.06,
+      "cpu_limit": null,
+      "memory_used": 61603840,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.19,
+      "memory_used_str": "58.75MiB",
+      "memory_limit_str": "30.65GiB"
+    },
+    "safeline-detector": {
+      "cpu_percent": 10.21,
+      "cpu_limit": null,
+      "memory_used": 175426764,
+      "memory_limit": 32910186905,
+      "memory_percent": 0.53,
+      "memory_used_str": "167.3MiB",
+      "memory_limit_str": "30.65GiB"
+    }
+  },
+  "disk_usage": {
+    "system": {
+      "filesystem": "/dev/sda1",
+      "size": "313G",
+      "used": "45G",
+      "available": "253G",
+      "use_percent": "15",
+      "mount": "/"
+    },
+    "docker_info": "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE\nImages          28        17        7.496GB   2.122GB (28%)\nContainers      17        10        463.4MB   68.14MB (14%)\nLocal Volumes   15        1         119.9MB   119.9MB (100%)\nBuild Cache     0         0         0B        0B\n"
+  }
+}

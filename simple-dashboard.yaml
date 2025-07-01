@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  dashboard:
+    container_name: safeline-dashboard
+    image: nginx:alpine
+    ports:
+      - "9443:80"
+    volumes:
+      - ./dashboard:/usr/share/nginx/html
+    restart: always
+
+  api-mock:
+    container_name: safeline-api
+    image: httpd:alpine
+    ports:
+      - "8000:80"
+    volumes:
+      - ./api-mock:/usr/local/apache2/htdocs
+    restart: always

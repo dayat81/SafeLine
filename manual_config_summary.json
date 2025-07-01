@@ -1,0 +1,34 @@
+{
+  "manual_configuration_required": true,
+  "reason": "API automation failed due to nginx upstream resolution",
+  "web_console": "https://localhost:9443",
+  "credentials": {
+    "username": "admin",
+    "password": "E8NuObcs"
+  },
+  "backend_apps": [
+    {
+      "name": "Juice Shop",
+      "url": "http://localhost:8081",
+      "container": "172.22.222.3:3000"
+    },
+    {
+      "name": "DVWA",
+      "url": "http://localhost:8080",
+      "container": "172.22.222.6:80"
+    },
+    {
+      "name": "Node.js App",
+      "url": "http://localhost:8082",
+      "container": "172.22.222.9:3000"
+    }
+  ],
+  "next_steps": [
+    "Access web console manually",
+    "Navigate to website management",
+    "Add three sites with container IPs as upstreams",
+    "Configure protection rules",
+    "Add /etc/hosts entries",
+    "Test with attack scenarios"
+  ]
+}

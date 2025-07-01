@@ -1,0 +1,144 @@
+{
+  "normal_requests": [
+    {
+      "name": "Homepage",
+      "status_code": 200,
+      "response_time": 28.189659118652344,
+      "blocked": false
+    },
+    {
+      "name": "Search",
+      "status_code": 200,
+      "response_time": 11.717796325683594,
+      "blocked": false
+    },
+    {
+      "name": "User Profile",
+      "status_code": 200,
+      "response_time": 8.604288101196289,
+      "blocked": false
+    },
+    {
+      "name": "API Call",
+      "status_code": 200,
+      "response_time": 7.750034332275391,
+      "blocked": false
+    },
+    {
+      "name": "Login",
+      "status_code": 401,
+      "response_time": 53.16662788391113,
+      "blocked": false
+    }
+  ],
+  "attack_attempts": [
+    {
+      "type": "SQL Injection",
+      "payload": "1' OR '1'='1",
+      "status_code": 200,
+      "response_time": 6.96253776550293,
+      "blocked": false
+    },
+    {
+      "type": "SQL Injection",
+      "payload": "1'; DROP TABLE users--",
+      "status_code": 200,
+      "response_time": 5.808353424072266,
+      "blocked": false
+    },
+    {
+      "type": "SQL Injection",
+      "payload": "admin'--",
+      "status_code": 200,
+      "response_time": 6.003618240356445,
+      "blocked": false
+    },
+    {
+      "type": "SQL Injection",
+      "payload": "1' UNION SELECT * FROM passwords--",
+      "status_code": 200,
+      "response_time": 5.934715270996094,
+      "blocked": false
+    },
+    {
+      "type": "SQL Injection",
+      "payload": "'; SELECT * FROM information_schema.tables--",
+      "status_code": 200,
+      "response_time": 5.974054336547852,
+      "blocked": false
+    },
+    {
+      "type": "XSS",
+      "payload": "<script>alert('XSS')</script>",
+      "status_code": 200,
+      "response_time": 6.548404693603516,
+      "blocked": false
+    },
+    {
+      "type": "XSS",
+      "payload": "<img src=x onerror=alert('XSS')>",
+      "status_code": 200,
+      "response_time": 5.7697296142578125,
+      "blocked": false
+    },
+    {
+      "type": "XSS",
+      "payload": "<svg onload=alert('XSS')>",
+      "status_code": 200,
+      "response_time": 5.986928939819336,
+      "blocked": false
+    },
+    {
+      "type": "XSS",
+      "payload": "javascript:alert('XSS')",
+      "status_code": 200,
+      "response_time": 4.919528961181641,
+      "blocked": false
+    },
+    {
+      "type": "XSS",
+      "payload": "<iframe src='javascript:alert(\"XSS\")'></iframe>",
+      "status_code": 200,
+      "response_time": 11.03973388671875,
+      "blocked": false
+    },
+    {
+      "type": "Command Injection",
+      "payload": "127.0.0.1; cat /etc/passwd",
+      "status_code": 200,
+      "response_time": 6.958246231079102,
+      "blocked": false
+    },
+    {
+      "type": "Command Injection",
+      "payload": "localhost && whoami",
+      "status_code": 200,
+      "response_time": 6.57200813293457,
+      "blocked": false
+    },
+    {
+      "type": "Command Injection",
+      "payload": "8.8.8.8 | ls -la",
+      "status_code": 200,
+      "response_time": 5.672216415405273,
+      "blocked": false
+    },
+    {
+      "type": "Command Injection",
+      "payload": "google.com; rm -rf /",
+      "status_code": 200,
+      "response_time": 7.241249084472656,
+      "blocked": false
+    },
+    {
+      "type": "Command Injection",
+      "payload": "test.com`id`",
+      "status_code": 200,
+      "response_time": 5.7773590087890625,
+      "blocked": false
+    }
+  ],
+  "blocked_attacks": 0,
+  "passed_attacks": 15,
+  "false_positives": 0
+}

@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  postgres:
+    container_name: safeline-pg
+    image: postgres:15.2-alpine
+    restart: always
+    environment:
+      POSTGRES_USER: safeline
+      POSTGRES_PASSWORD: SafeLine123
+      POSTGRES_DB: safeline
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U safeline -d safeline"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  luigi:
+    container_name: safeline-luigi
+    image: chaitin/safeline-luigi:latest
+    restart: always
+    volumes:
+      - luigi_data:/app/data
+
+  fvm:
+    container_name: safeline-fvm
+    image: chaitin/safeline-fvm:latest
+    restart: always
+    volumes:
+      - fvm_data:/app/data
+
+  chaos:
+    container_name: safeline-chaos
+    image: chaitin/safeline-chaos:latest
+    restart: always
+    volumes:
+      - chaos_data:/app/data
+
+  mgt:
+    container_name: safeline-mgt
+    image: chaitin/safeline-mgt:latest
+    restart: always
+    ports:
+      - "9443:1443"
+    environment:
+      - MGT_PG=postgres://safeline:SafeLine123@postgres:5432/safeline?sslmode=disable
+    volumes:
+      - mgt_data:/app/data
+      - mgt_logs:/app/log
+      - socket_data:/app/sock
+    depends_on:
+      - postgres
+      - luigi  
+      - fvm
+      - chaos
+
+volumes:
+  postgres_data:
+  luigi_data:
+  fvm_data:
+  chaos_data:
+  mgt_data:
+  mgt_logs:
+  socket_data:
