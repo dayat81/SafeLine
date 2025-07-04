@@ -226,6 +226,7 @@ class SafeLineResourceMonitor:
         print("-"*90)
         
         total_cpu = 0.0
+        total_mem_percent = 0.0
         total_mem_used = 0.0
         total_mem_limit = 0.0
         running_containers = 0
@@ -263,16 +264,15 @@ class SafeLineResourceMonitor:
             
             # Accumulate totals
             total_cpu += cpu_percent
+            total_mem_percent += mem_percent
             total_mem_used += mem_used
             total_mem_limit += mem_limit
             running_containers += 1
         
         # Summary
         print("-"*90)
-        avg_cpu_all = total_cpu / running_containers if running_containers > 0 else 0
-        total_mem_percent = (total_mem_used / total_mem_limit * 100) if total_mem_limit > 0 else 0
         
-        print(f"{'TOTAL/AVERAGE':<20} {avg_cpu_all:>6.1f}% {'':>8} {total_mem_percent:>8.1f}% {'':>8} {self.format_bytes(total_mem_used):<20} {'':>8}")
+        print(f"{'TOTAL/AVERAGE':<20} {total_cpu:>6.1f}% {'':>8} {total_mem_percent:>8.1f}% {'':>8} {self.format_bytes(total_mem_used):<20} {'':>8}")
         
         # System info
         system_mem, cpu_cores = self.get_system_info()
