@@ -290,9 +290,9 @@ def parse_arguments():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
 Examples:
-  %(prog)s                                    # Run with defaults (0.5 hours, 20 RPS)
-  %(prog)s -d 2 -r 50                        # Run for 2 hours at 50 RPS
-  %(prog)s --duration 0.25 --rps 100         # Run for 15 minutes at 100 RPS
+  %(prog)s                                    # Run with defaults (0.5 hours, 20 RPS, SafeLine WAF)
+  %(prog)s -d 2 -r 50                        # Run for 2 hours at 50 RPS targeting SafeLine WAF
+  %(prog)s --duration 0.25 --rps 100         # Run for 15 minutes at 100 RPS targeting SafeLine WAF
   %(prog)s -d 6 -r 10 -t safeline_waf        # Run for 6 hours at 10 RPS targeting SafeLine WAF
   %(prog)s -d 1 -r 30 -t dvwa_direct         # Run for 1 hour at 30 RPS targeting DVWA directly
 
@@ -320,8 +320,8 @@ Available targets:
     parser.add_argument(
         '-t', '--target',
         choices=['safeline_waf', 'dvwa_direct', 'test_endpoint'],
-        default='dvwa_direct',
-        help='Target endpoint (default: dvwa_direct)'
+        default='safeline_waf',
+        help='Target endpoint (default: safeline_waf)'
     )
     
     return parser.parse_args()
