@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
+sudo password is admin
 ## Project Overview
 ## export GEMINI_API_KEY="AIzaSyDc5iF5xLH0iujbB3jo0h94tWKiFm6IGYo"
 

