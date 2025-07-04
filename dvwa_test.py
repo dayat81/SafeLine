@@ -6,7 +6,7 @@ import time
 # --- 1. CONFIGURATION ---
 # --- Replace these values with your DVWA setup ---
 
-DVWA_URL = "http://192.168.18.177"  # URL for WAF testing
+DVWA_URL = "http://localhost:3000"  # URL for WAF testing
 # Use environment variables for credentials, with fallbacks to defaults
 USERNAME = os.environ.get("DVWA_USERNAME", "admin")
 PASSWORD = os.environ.get("DVWA_PASSWORD", "password")

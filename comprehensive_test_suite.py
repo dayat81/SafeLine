@@ -19,8 +19,8 @@ from datetime import datetime
 class ComprehensiveTestSuite:
     def __init__(self):
         self.targets = {
-            'vulnerable_app': 'http://localhost:8080',
-            'proxy_waf': 'http://localhost:8090',
+            'vulnerable_app': 'http://localhost:3000',
+            'proxy_waf': 'http://localhost',
             'direct_test': 'http://httpbin.org/get'  # Fallback for testing
         }
         
@@ -130,7 +130,7 @@ class ComprehensiveTestSuite:
         
         # Also append to execution log
         log_entry = f"\n### {timestamp} - {message}\n"
-        with open("/home/pt/SafeLine/COMPLETE_EXECUTION_LOG.md", "a") as f:
+        with open("/home/ptsec/SafeLine/COMPLETE_EXECUTION_LOG.md", "a") as f:
             f.write(log_entry)
     
     def test_target_availability(self):
@@ -426,7 +426,7 @@ class ComprehensiveTestSuite:
         }
         
         # Save to file
-        output_file = f"/home/pt/SafeLine/full_test_results/{filename_prefix}_{timestamp}.json"
+        output_file = f"/home/ptsec/SafeLine/full_test_results/{filename_prefix}_{timestamp}.json"
         with open(output_file, 'w') as f:
             json.dump(results_data, f, indent=2)
         
